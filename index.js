@@ -40,16 +40,16 @@ const structurize = (def, data) => {
 
 const destructurize = (def, data) => {
   let result = {};
-  
+
   Object.keys(data).forEach((key) => {
     if(!Object.keys(def).find((d) => d === key)) {
       throw new Error(`field ${key} not in structure definition`);
     }
   });
-  
+
   Object.keys(def).forEach((key) => {
     const value = def[key];
-    
+
     if(typeof data[key] !== "undefined") {
       if (typeof value === "string") {
         result[value] = data[key];
@@ -58,7 +58,7 @@ const destructurize = (def, data) => {
       }
     }
   });
-  
+
   return result;
 };
 
@@ -102,6 +102,7 @@ const transformer = {
 const subscription = {
   "emulate": ({ conn, jobs }) => {
     const emitter = new EventEmitter();
+    emitter.setMaxListeners(0);
 
     let closed = false;
     let schedule;
@@ -111,7 +112,7 @@ const subscription = {
 
       conn.read(jobs).then((data) => {
           emitter.emit("data", data);
-          schedule = setTimeout(next, 1000);
+          schedule = setTimeout(next, 100);
         })
         .catch((err) => {
           if (!closed) {
@@ -135,6 +136,7 @@ const subscription = {
   },
   "handler": ({ context, jobs }) => {
     const emitter = new EventEmitter();
+    emitter.setMaxListeners(0);
 
     let ctx;
     let closed = false;
@@ -145,7 +147,7 @@ const subscription = {
         if(ev === "data") {
           if(!equal(last, data, {"strict": true})) {
             emitter.emit(ev, data);
-            last = data;          
+            last = data;
           }
         }
         else {
@@ -240,6 +242,7 @@ const connectionManager = {
         } else {
           if (!emitter) {
             emitter = new EventEmitter();
+            emitter.setMaxListeners(0);
 
             process.nextTick(async() => {
               try {
@@ -257,7 +260,6 @@ const connectionManager = {
                 active = handle;
                 emitter.emit("connect", handle);
               } catch (ex) {
-                console.error(ex);
                 emitter.emit("error", ex);
               } finally {
                 emitter = null;
@@ -305,6 +307,7 @@ module.exports = {
       "aquire": connman.aquire,
       "subscribe": (jobs) => {
         const emitter = new EventEmitter();
+        emitter.setMaxListeners(0);
 
         let handler;
 
@@ -348,6 +351,7 @@ module.exports = {
           },
           "subscribe": (jobs) => {
             const emitter = new EventEmitter();
+            emitter.setMaxListeners(0);
 
             const required = tf.required(jobs);
 
